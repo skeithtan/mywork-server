@@ -13,6 +13,9 @@ class Profile(models.Model):
     user_type = models.CharField(max_length=2, choices=UserType.choices)
     program = models.CharField(max_length=128)
 
+    def __str__(self):
+        return f"{self.user} - {self.program}"
+
 
 class Course(models.Model):
     name = models.CharField(max_length=128)
