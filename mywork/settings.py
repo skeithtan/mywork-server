@@ -75,10 +75,10 @@ WSGI_APPLICATION = 'mywork.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'btpy5pr38igcgu53c5xm',
-        'USER': 'uhah4dhnfnot3bt9l1r8',
-        'PASSWORD': '7iGAYllQ6W1i3TMebA5h',
-        'HOST': 'btpy5pr38igcgu53c5xm-postgresql.services.clever-cloud.com',
+        'NAME': 'tdygheow',
+        'USER': 'tdygheow',
+        'PASSWORD': 'ppqgrISoLAhjcoa3bfpDtw22GilgGIE9',
+        'HOST': 'tai.db.elephantsql.com',
         'PORT': 5432,
     }
 }
