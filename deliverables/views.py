@@ -3,11 +3,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework import authentication, permissions
 from rest_framework.authtoken.models import Token
-from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from .models import Profile
-from .serializers import ProfileSerializer, SignUpSerializer
+from . import models, serializers
 
 
 @api_view(['POST'])
@@ -28,28 +26,43 @@ def sign_in_view(request):
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def get_profile_view(request):
-    profile = Profile.objects.get(user=request.user)
-    return Response(ProfileSerializer(profile).data)
+    profile = models.Profile.objects.get(user=request.user)
+    return Response(serializers.ProfileSerializer(profile).data)
 
 
 @api_view(['POST'])
 def create_profile_view(request):
-    serializer = SignUpSerializer(data=request.data)
+    serializer = serializers.SignUpSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors)
 
-    email = serializer.validated_data['email']
+    data = serializer.validated_data
+    email = data['email']
     if User.objects.filter(username=email).exists():
         return Response({
             'error': f"User with email {email} already exists"
         })
 
-    user = User.objects.create_user(username=email, password=serializer.validated_data["password"])
-    profile = Profile.objects.create(
-        name=serializer.validated_data['name'],
+    user = User.objects.create_user(username=email, password=data["password"])
+    profile = models.Profile.objects.create(
+        name=data['name'],
         user=user,
-        user_type=serializer.validated_data['user_type'],
-        program=serializer.validated_data['program']
+        user_type=data['user_type'],
+        program=data['program'] if 'program' in data.keys() else ""
     )
 
-    return Response(ProfileSerializer(profile).data)
+    return Response(serializers.ProfileSerializer(profile).data)
+
+
+@api_view(['GET'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def get_student_deliverables(request):
+    profile = models.Profile.objects.get(user=request.user)
+    if profile.user_type != models.Profile.UserType.STUDENT:
+        return Response({
+            'error': "User must be of type student to view deliverables"
+        })
+
+    deliverables = models.Deliverable.objects.get(course__students__user=request.user)
+    return Response(serializers.DeliverableSerializer(deliverables, many=True).data)

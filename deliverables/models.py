@@ -11,7 +11,7 @@ class Profile(models.Model):
     name = models.CharField(max_length=128)
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     user_type = models.CharField(max_length=2, choices=UserType.choices)
-    program = models.CharField(max_length=128)
+    program = models.CharField(max_length=128, blank=True)
 
     def __str__(self):
         return f"{self.user} - {self.program}"
