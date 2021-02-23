@@ -39,3 +39,12 @@ class DeliverableSubmissionSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.DeliverableSubmission
         fields = '__all__'
+
+
+class CourseSerializer(serializers.ModelSerializer):
+    professor = ProfileSerializer(read_only=True)
+    students = ProfileSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = models.Course
+        fields = '__all__'

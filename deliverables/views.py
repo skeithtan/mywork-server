@@ -70,7 +70,7 @@ def create_profile_view(request):
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 @students_only
-def get_student_deliverable_submissions(request):
+def get_student_deliverable_submissions_view(request):
     profile = models.Profile.objects.get(user=request.user)
     deliverable_submissions = models.DeliverableSubmission.objects.filter(submitter=profile)
     return Response(serializers.DeliverableSubmissionSerializer(deliverable_submissions, many=True).data)
@@ -95,4 +95,18 @@ def create_deliverable(request):
         total_score=data["total_score"]
     )
 
-    return Response(serializers.DeliverableSerializer(data=deliverable).data)
+    return Response(serializers.DeliverableSerializer(deliverable).data)
+
+
+@api_view(['GET'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def get_courses_view(request):
+    profile = models.Profile.objects.get(user=request.user)
+    courses = []
+    if profile.user_type == models.Profile.UserType.PROFESSOR:
+        courses = models.Course.objects.filter(professor=profile)
+    else:
+        courses = models.Course.objects.filter(students=profile)
+
+    return Response(serializers.CourseSerializer(courses, many=True).data)
