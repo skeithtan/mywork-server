@@ -109,3 +109,29 @@ def get_courses_view(request):
         courses = models.Course.objects.filter(students=profile)
 
     return Response(serializers.CourseSerializer(courses, many=True).data)
+
+
+@api_view(['POST'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+@professors_only
+def create_course(request):
+    profile = models.Profile.objects.get(user=request.user)
+    serializer = serializers.CourseSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors)
+
+    data = serializer.validated_data
+    course = models.Course.objects.create(
+        name=data["name"],
+        semester_name=data["semester_name"],
+        professor=data["professor"]
+    )
+
+    # Loop over Students and add many to many relationship to course
+    for student_id in data['students']:
+        course.students.add(student_id)
+    course.save()
+
+
+    return Response(serializers.CourseSerializer(course).data)

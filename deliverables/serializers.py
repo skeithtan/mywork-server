@@ -46,8 +46,8 @@ class DeliverableSubmissionSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
-    professor = ProfileSerializer(read_only=True)
-    students = ProfileSerializer(many=True, read_only=True)
+    #professor = ProfileSerializer(read_only=True)
+    #students = ProfileSerializer(many=True, read_only=False)
 
     class Meta:
         model = models.Course
