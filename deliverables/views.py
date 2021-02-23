@@ -132,3 +132,65 @@ def create_course(request):
     )
 
     return Response(serializers.CourseSerializer(course).data)
+
+
+
+
+@api_view(['GET', 'PUT'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def courses_details_view(request, id):
+    if request.method == 'GET':
+        return get_courses_details(request, id)
+    else:
+        return edit_course(request, id)
+
+
+def get_courses_details(request, id):
+    profile = models.Profile.objects.get(user=request.user)
+    
+    if profile.user_type == models.Profile.UserType.PROFESSOR:
+        # Check if professor has access to requested course
+        if not models.Course.objects.filter(professor=profile).filter(id=id).exists():
+            return Response({
+                'error': f"Professors only have access to the courses they created."
+            })
+        course = models.Course.objects.filter(professor=profile).get(id = id)
+    else:
+        # Check if student has access to requested course
+        if not models.Course.objects.filter(students=profile).filter(id=id).exists():
+            return Response({
+                'error': f"Students only have access to the classes they are a part of."
+            })
+        course = models.Course.objects.filter(students=profile).get(id = id)
+
+    # Return found course if access is allowed
+    return Response(serializers.CourseSerializer(course).data)
+   
+
+
+@professors_only
+def edit_course(request, id):
+    # profile = models.Profile.objects.get(user=request.user)
+
+    # # Check if professor has access to requested course
+    # if not models.Course.objects.filter(professor=profile).filter(id=id).exists():
+    #     return Response({
+    #         'error': f"Professors only have access to the courses they created."
+    #     })
+    # else:
+    #     course_to_edit = models.Course.objects.filter(professor=profile).get(id = id)
+    #     serializer = serializers.CourseSerializer(data=request.data)
+    #     if not serializer.is_valid():
+    #         return Response(serializer.errors)
+
+    #     data = serializer.validated_data
+    #     course = models.Course.objects.update(
+    #         name=data["name"],
+    #         semester_name=data["semester_name"]
+    #     )
+
+    #     return Response(serializers.CourseSerializer(course).data)
+    return Response({
+        'message': f"This part of the website in still in construction..."
+    })
