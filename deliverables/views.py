@@ -4,6 +4,7 @@ from rest_framework.decorators import api_view, permission_classes, authenticati
 from rest_framework import authentication, permissions
 from rest_framework.authtoken.models import Token
 from django.contrib.auth.models import User
+from django.db import transaction
 from django.contrib.auth import authenticate
 from .middlewares import professors_only, students_only
 from . import models, serializers
@@ -55,17 +56,6 @@ def create_profile_view(request):
     return Response(serializers.ProfileSerializer(profile).data)
 
 
-#
-# @api_view(['GET'])
-# @authentication_classes([authentication.TokenAuthentication])
-# @permission_classes([permissions.IsAuthenticated])
-# @group_required('Students')
-# def get_student_deliverables(request):
-#     profile = models.Profile.objects.get(user=request.user)
-#     deliverables = models.Deliverable.objects.filter(course__students__user=request.user)
-#     return Response(serializers.DeliverableSerializer(deliverables, many=True).data)
-
-
 @api_view(['GET'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -86,14 +76,23 @@ def create_deliverable(request):
         return Response(serializer.errors)
 
     data = serializer.validated_data
-    deliverable = models.Deliverable.objects.create(
-        name=data["name"],
-        course=data["course"],
-        is_group_work=data["is_group_work"],
-        description=data["description"],
-        deadline=data["deadline"],
-        total_score=data["total_score"]
-    )
+    course = data["course"]
+
+    with transaction.atomic():
+        deliverable = models.Deliverable.objects.create(
+            name=data["name"],
+            course=course,
+            is_group_work=data["is_group_work"],
+            description=data["description"],
+            deadline=data["deadline"],
+            total_score=data["total_score"]
+        )
+
+        for student in course.students.all():
+            models.DeliverableSubmission.objects.create(
+                deliverable=deliverable,
+                submitter=student,
+            )
 
     return Response(serializers.DeliverableSerializer(deliverable).data)
 

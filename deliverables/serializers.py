@@ -30,12 +30,16 @@ class SignUpSerializer(serializers.Serializer):
 
 
 class DeliverableSerializer(serializers.ModelSerializer):
+    course = serializers.StringRelatedField()
+
     class Meta:
         model = models.Deliverable
         fields = '__all__'
 
 
 class DeliverableSubmissionSerializer(serializers.ModelSerializer):
+    deliverable = DeliverableSerializer()
+
     class Meta:
         model = models.DeliverableSubmission
         fields = '__all__'

@@ -24,7 +24,7 @@ class Course(models.Model):
     students = models.ManyToManyField(Profile, related_name='course_student_set')
 
     def __str__(self):
-        return f"{self.name} - {self.semester_name}"
+        return self.name
 
 
 class FileAttachment(models.Model):
@@ -64,7 +64,7 @@ class DeliverableSubmission(models.Model):
                                   related_name='deliverable_submission_submitter_set',
                                   on_delete=models.CASCADE)
 
-    group_members = models.ManyToManyField(Profile, related_name='deliverable_submission_group_members_set')
+    group_members = models.ManyToManyField(Profile, related_name='deliverable_submission_group_members_set', blank=True)
     date_submitted = models.DateTimeField(blank=True, null=True)
     file_attachments = models.ManyToManyField(FileAttachment, blank=True)
     link_attachments = models.ManyToManyField(LinkAttachment, blank=True)
