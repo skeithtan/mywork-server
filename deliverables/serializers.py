@@ -5,7 +5,7 @@ from . import models
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Profile
-        fields = ['name', 'user_type', 'program']
+        fields = ['id', 'name', 'user_type', 'program']
 
 
 class SignUpSerializer(serializers.Serializer):
@@ -46,8 +46,8 @@ class DeliverableSubmissionSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
-    #professor = ProfileSerializer(read_only=True)
-    #students = ProfileSerializer(many=True, read_only=False)
+    professor = ProfileSerializer(read_only=True)
+    students = ProfileSerializer(many=True, read_only=False, required=False)
 
     class Meta:
         model = models.Course

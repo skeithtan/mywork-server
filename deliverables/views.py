@@ -97,12 +97,18 @@ def create_deliverable(request):
     return Response(serializers.DeliverableSerializer(deliverable).data)
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
-def get_courses_view(request):
+def courses_view(request):
+    if request.method == 'GET':
+        return get_courses(request)
+    else:
+        return create_course(request)
+
+
+def get_courses(request):
     profile = models.Profile.objects.get(user=request.user)
-    courses = []
     if profile.user_type == models.Profile.UserType.PROFESSOR:
         courses = models.Course.objects.filter(professor=profile)
     else:
@@ -111,9 +117,6 @@ def get_courses_view(request):
     return Response(serializers.CourseSerializer(courses, many=True).data)
 
 
-@api_view(['POST'])
-@authentication_classes([authentication.TokenAuthentication])
-@permission_classes([permissions.IsAuthenticated])
 @professors_only
 def create_course(request):
     profile = models.Profile.objects.get(user=request.user)
@@ -125,13 +128,7 @@ def create_course(request):
     course = models.Course.objects.create(
         name=data["name"],
         semester_name=data["semester_name"],
-        professor=data["professor"]
+        professor=profile
     )
-
-    # Loop over Students and add many to many relationship to course
-    for student_id in data['students']:
-        course.students.add(student_id)
-    course.save()
-
 
     return Response(serializers.CourseSerializer(course).data)

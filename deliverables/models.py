@@ -21,7 +21,7 @@ class Course(models.Model):
     name = models.CharField(max_length=128)
     semester_name = models.CharField(max_length=128)
     professor = models.ForeignKey(Profile, on_delete=models.SET_NULL, null=True, related_name='course_professor_set')
-    students = models.ManyToManyField(Profile, related_name='course_student_set')
+    students = models.ManyToManyField(Profile, related_name='course_student_set', blank=True)
 
     def __str__(self):
         return self.name
