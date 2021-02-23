@@ -171,26 +171,24 @@ def get_courses_details(request, id):
 
 @professors_only
 def edit_course(request, id):
-    # profile = models.Profile.objects.get(user=request.user)
+    profile = models.Profile.objects.get(user=request.user)
+    course_to_edit = models.Course.objects.filter(professor=profile).filter(id = id)
+    # Check if professor has access to requested course
+    if not course_to_edit.exists():
+        return Response({
+            'error': f"Professors only have access to the courses they created."
+        })
+    else:
+        
+        serializer = serializers.CourseSerializer(data=request.data)
+        
+        if not serializer.is_valid():
+            return Response(serializer.errors)
 
-    # # Check if professor has access to requested course
-    # if not models.Course.objects.filter(professor=profile).filter(id=id).exists():
-    #     return Response({
-    #         'error': f"Professors only have access to the courses they created."
-    #     })
-    # else:
-    #     course_to_edit = models.Course.objects.filter(professor=profile).get(id = id)
-    #     serializer = serializers.CourseSerializer(data=request.data)
-    #     if not serializer.is_valid():
-    #         return Response(serializer.errors)
+        data = serializer.validated_data
 
-    #     data = serializer.validated_data
-    #     course = models.Course.objects.update(
-    #         name=data["name"],
-    #         semester_name=data["semester_name"]
-    #     )
+        course_to_edit.update(name=data['name'], semester_name=data['semester_name'])
 
-    #     return Response(serializers.CourseSerializer(course).data)
-    return Response({
-        'message': f"This part of the website in still in construction..."
-    })
+        course_edited = models.Course.objects.filter(professor=profile).get(id = id)
+
+        return Response(serializers.CourseSerializer(course_edited).data)
