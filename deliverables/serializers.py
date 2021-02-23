@@ -1,10 +1,10 @@
 from rest_framework import serializers
-from .models import Profile, Deliverable
+from . import models
 
 
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Profile
+        model = models.Profile
         fields = ['name', 'user_type', 'program']
 
 
@@ -19,11 +19,11 @@ class SignUpSerializer(serializers.Serializer):
         if 'user_type' not in data.keys():
             raise serializers.ValidationError('Field user_type is required.')
 
-        if data['user_type'] == Profile.UserType.STUDENT and \
+        if data['user_type'] == models.Profile.UserType.STUDENT and \
                 ('program' not in data.keys() or len(data['program']) == 0):
             raise serializers.ValidationError("Field program is required.")
 
-        if data['user_type'] == Profile.UserType.PROFESSOR and 'program' in data.keys():
+        if data['user_type'] == models.Profile.UserType.PROFESSOR and 'program' in data.keys():
             data['program'] = ''
 
         return super().validate(data)
@@ -31,5 +31,11 @@ class SignUpSerializer(serializers.Serializer):
 
 class DeliverableSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Deliverable
+        model = models.Deliverable
+        fields = '__all__'
+
+
+class DeliverableSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.DeliverableSubmission
         fields = '__all__'
