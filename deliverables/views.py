@@ -70,12 +70,13 @@ def get_student_deliverable_submissions_view(request):
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 @professors_only
-def create_deliverable(request):
+def create_deliverable_view(request):
     serializer = serializers.DeliverableSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors)
 
     data = serializer.validated_data
+    print(data)
     course = data["course"]
 
     with transaction.atomic():
@@ -132,8 +133,6 @@ def create_course(request):
     )
 
     return Response(serializers.CourseSerializer(course).data)
-
-
 
 
 @api_view(['GET', 'PUT'])

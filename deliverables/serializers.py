@@ -30,7 +30,10 @@ class SignUpSerializer(serializers.Serializer):
 
 
 class DeliverableSerializer(serializers.ModelSerializer):
-    course = serializers.StringRelatedField()
+    course_name = serializers.SerializerMethodField()
+
+    def get_course_name(self, obj):
+        return obj.course.name
 
     class Meta:
         model = models.Deliverable
