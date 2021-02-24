@@ -153,6 +153,7 @@ def courses_details_view(request, id):
     else:
         return drop_course(request, id)
 
+
 def get_courses_details(request, id):
     profile = models.Profile.objects.get(user=request.user)
     if profile.user_type == models.Profile.UserType.PROFESSOR:
@@ -173,12 +174,14 @@ def get_courses_details(request, id):
     # Return found course if access is allowed
     return Response(serializers.CourseSerializer(course).data)
 
+
 def edit_course(request, id):
     profile = models.Profile.objects.get(user=request.user)
     if profile.user_type == models.Profile.UserType.PROFESSOR:
         return edit_course_details(request, id)
     else:
         return join_course(request, id)
+
 
 @professors_only
 def edit_course_details(request, id):
@@ -204,6 +207,7 @@ def edit_course_details(request, id):
 
         return Response(serializers.CourseSerializer(course_edited).data)
 
+
 @students_only
 def join_course(request, id):
     profile = models.Profile.objects.get(user=request.user)
@@ -219,12 +223,13 @@ def join_course(request, id):
             return Response({
                 "error": "You are already enrolled in this course !"
             })
-        
+
         course_to_edit.get().students.add(profile)
-        
+
         course_edited = models.Course.objects.get(id=id)
 
         return Response(serializers.CourseSerializer(course_edited).data)
+
 
 @students_only
 def drop_course(request, id):
@@ -241,9 +246,19 @@ def drop_course(request, id):
             return Response({
                 "error": "You are NOT enrolled in this course !"
             })
-        
+
         course_to_edit.get().students.remove(profile)
-        
+
         course_edited = models.Course.objects.get(id=id)
 
         return Response(serializers.CourseSerializer(course_edited).data)
+
+
+@api_view(['GET'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+@professors_only
+def course_deliverables_view(request, id):
+    course = models.Course.objects.get(pk=id)
+    deliverables = models.Deliverable.objects.filter(course=course)
+    return Response(serializers.DeliverableSerializer(deliverables, many=True).data)
