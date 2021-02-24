@@ -142,15 +142,16 @@ def create_course(request):
     return Response(serializers.CourseSerializer(course).data)
 
 
-@api_view(['GET', 'PUT'])
+@api_view(['GET', 'PUT', 'DELETE'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 def courses_details_view(request, id):
     if request.method == 'GET':
         return get_courses_details(request, id)
-    else:
+    elif request.method == 'PUT':
         return edit_course(request, id)
-
+    else:
+        return drop_course(request, id)
 
 def get_courses_details(request, id):
     profile = models.Profile.objects.get(user=request.user)
@@ -220,6 +221,28 @@ def join_course(request, id):
             })
         
         course_to_edit.get().students.add(profile)
+        
+        course_edited = models.Course.objects.get(id=id)
+
+        return Response(serializers.CourseSerializer(course_edited).data)
+
+@students_only
+def drop_course(request, id):
+    profile = models.Profile.objects.get(user=request.user)
+    course_to_edit = models.Course.objects.filter(id=id)
+    # Check if course exists in db
+    if not course_to_edit.exists():
+        return Response({
+            'error': f"Course n°{id} does not exist. Please choose a valid id."
+        })
+    else:
+        # Check if student is currently enrolled in this course
+        if profile not in course_to_edit.get().students.all():
+            return Response({
+                "error": "You are NOT enrolled in this course !"
+            })
+        
+        course_to_edit.get().students.remove(profile)
         
         course_edited = models.Course.objects.get(id=id)
 
