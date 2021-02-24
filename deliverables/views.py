@@ -110,10 +110,17 @@ def courses_view(request):
 
 def get_courses(request):
     profile = models.Profile.objects.get(user=request.user)
-    if profile.user_type == models.Profile.UserType.PROFESSOR:
-        courses = models.Course.objects.filter(professor=profile)
+    search = request.query_params['search'] if 'search' in request.query_params else None
+
+    if search:
+        # When searching, search from ALL available courses
+        courses = models.Course.objects.filter(name__icontains=search)
     else:
-        courses = models.Course.objects.filter(students=profile)
+        # When not searching, only give courses relevant to the user
+        if profile.user_type == models.Profile.UserType.PROFESSOR:
+            courses = models.Course.objects.filter(professor=profile)
+        else:
+            courses = models.Course.objects.filter(students=profile)
 
     return Response(serializers.CourseSerializer(courses, many=True).data)
 
@@ -147,40 +154,39 @@ def courses_details_view(request, id):
 
 def get_courses_details(request, id):
     profile = models.Profile.objects.get(user=request.user)
-    
+
     if profile.user_type == models.Profile.UserType.PROFESSOR:
         # Check if professor has access to requested course
         if not models.Course.objects.filter(professor=profile).filter(id=id).exists():
             return Response({
                 'error': f"Professors only have access to the courses they created."
             })
-        course = models.Course.objects.filter(professor=profile).get(id = id)
+        course = models.Course.objects.filter(professor=profile).get(id=id)
     else:
         # Check if student has access to requested course
         if not models.Course.objects.filter(students=profile).filter(id=id).exists():
             return Response({
                 'error': f"Students only have access to the classes they are a part of."
             })
-        course = models.Course.objects.filter(students=profile).get(id = id)
+        course = models.Course.objects.filter(students=profile).get(id=id)
 
     # Return found course if access is allowed
     return Response(serializers.CourseSerializer(course).data)
-   
 
 
 @professors_only
 def edit_course(request, id):
     profile = models.Profile.objects.get(user=request.user)
-    course_to_edit = models.Course.objects.filter(professor=profile).filter(id = id)
+    course_to_edit = models.Course.objects.filter(professor=profile).filter(id=id)
     # Check if professor has access to requested course
     if not course_to_edit.exists():
         return Response({
             'error': f"Professors only have access to the courses they created."
         })
     else:
-        
+
         serializer = serializers.CourseSerializer(data=request.data)
-        
+
         if not serializer.is_valid():
             return Response(serializer.errors)
 
@@ -188,16 +194,6 @@ def edit_course(request, id):
 
         course_to_edit.update(name=data['name'], semester_name=data['semester_name'])
 
-        course_edited = models.Course.objects.filter(professor=profile).get(id = id)
+        course_edited = models.Course.objects.filter(professor=profile).get(id=id)
 
         return Response(serializers.CourseSerializer(course_edited).data)
-
-
-
-@api_view(['GET'])
-@authentication_classes([authentication.TokenAuthentication])
-@permission_classes([permissions.IsAuthenticated])
-def search_courses(request):
-    courses = models.Course.objects.filter(name__contains=request.GET['query'])
-    return Response(serializers.CourseSerializer(courses, many=True).data)
-
