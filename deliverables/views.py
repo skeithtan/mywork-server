@@ -154,7 +154,6 @@ def courses_details_view(request, id):
 
 def get_courses_details(request, id):
     profile = models.Profile.objects.get(user=request.user)
-
     if profile.user_type == models.Profile.UserType.PROFESSOR:
         # Check if professor has access to requested course
         if not models.Course.objects.filter(professor=profile).filter(id=id).exists():
@@ -173,9 +172,15 @@ def get_courses_details(request, id):
     # Return found course if access is allowed
     return Response(serializers.CourseSerializer(course).data)
 
+def edit_course(request, id):
+    profile = models.Profile.objects.get(user=request.user)
+    if profile.user_type == models.Profile.UserType.PROFESSOR:
+        return edit_course_details(request, id)
+    else:
+        return join_course(request, id)
 
 @professors_only
-def edit_course(request, id):
+def edit_course_details(request, id):
     profile = models.Profile.objects.get(user=request.user)
     course_to_edit = models.Course.objects.filter(professor=profile).filter(id=id)
     # Check if professor has access to requested course
@@ -195,5 +200,27 @@ def edit_course(request, id):
         course_to_edit.update(name=data['name'], semester_name=data['semester_name'])
 
         course_edited = models.Course.objects.filter(professor=profile).get(id=id)
+
+        return Response(serializers.CourseSerializer(course_edited).data)
+
+@students_only
+def join_course(request, id):
+    profile = models.Profile.objects.get(user=request.user)
+    course_to_edit = models.Course.objects.filter(id=id)
+    # Check if course exists in db
+    if not course_to_edit.exists():
+        return Response({
+            'error': f"Course n°{id} does not exist. Please choose a valid id."
+        })
+    else:
+        # Check if student already exists in course's students list
+        if profile in course_to_edit.get().students.all():
+            return Response({
+                "error": "You are already enrolled in this course !"
+            })
+        
+        course_to_edit.get().students.add(profile)
+        
+        course_edited = models.Course.objects.get(id=id)
 
         return Response(serializers.CourseSerializer(course_edited).data)
