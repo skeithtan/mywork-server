@@ -192,3 +192,13 @@ def edit_course(request, id):
         course_edited = models.Course.objects.filter(professor=profile).get(id = id)
 
         return Response(serializers.CourseSerializer(course_edited).data)
+
+
+
+@api_view(['GET'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def search_courses(request):
+    courses = models.Course.objects.filter(name__contains=request.GET['query'])
+    return Response(serializers.CourseSerializer(courses, many=True).data)
+
