@@ -342,56 +342,56 @@ def drop_course(request, id):
 
         return Response(serializers.CourseSerializer(course_edited).data)
     
+    
 @api_view(['POST'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
-def LinkAttachment_view(request, id):
-    if request.method == 'POST':
-        return create_LinkAttachment(request)
-    else:
-        return delete_LinkAttachment(request,id)
+@students_only
+def link_attachment_view(request, id):
+    # Check submission id
+    deliverable_submission = models.DeliverableSubmission.objects.filter(id=id)
+    if not deliverable_submission.exists():
+        return Response({
+            'error': f"Deliverable Submission n°{id} does not exist. Please choose a valid id."
+        }, status=status.HTTP_404_NOT_FOUND)
 
-@api_view(['DELETE'])
-@authentication_classes([authentication.TokenAuthentication])
-@permission_classes([permissions.IsAuthenticated])
-def LinkAttachmentDel_view(request, id, Lid):
-    return delete_LinkAttachment(request,Lid)
-
-@professors_only
-def create_LinkAttachment(request):
     serializer = serializers.LinkAttachmentSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors)
 
     data = serializer.validated_data
-    linkAttachment = models.LinkAttachment.objects.create(
+    link_attachment = models.LinkAttachment.objects.create(
         url=data["url"],
         label=data["label"],
     )
-    return Response(serializers.LinkAttachmentSerializer(linkAttachment).data)
 
-@professors_only
-def delete_LinkAttachment(request, Lid):
-    LinkAttachment_to_delete = models.LinkAttachment.objects.filter(id=Lid)
-    if not LinkAttachment_to_delete.exists():
+    # Add link to link attachments list
+    deliverable_submission.get().link_attachments.add(link_attachment)
+
+    return Response(serializers.StudentDeliverableSubmissionSerializer(deliverable_submission.get()).data)
+
+@api_view(['DELETE'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+@students_only
+def link_delete_view(request, id, link_id):
+    # Check submission id
+    deliverable_submission = models.DeliverableSubmission.objects.filter(id=id)
+    if not deliverable_submission.exists():
         return Response({
-            'error': f"Link Attachment not available."
-        })
-    else:
+            'error': f"Deliverable Submission n°{id} does not exist. Please choose a valid id."
+        }, status=status.HTTP_404_NOT_FOUND)
+    link_attachment_to_delete = models.LinkAttachment.objects.filter(id=link_id)
 
-        serializer = serializers.LinkAttachmentSerializer(data=request.data)
-
-        if not serializer.is_valid():
-            return Response(serializer.errors)
-
-        data = serializer.validated_data
-
-        LinkAttachment_to_delete.remove(Lid)
-
+    if not link_attachment_to_delete.exists():
         return Response({
-            'error': f"Record Deleted."
-        })
+            'error': f"Link n°{link_id} does not exist. Please choose a valid id."
+        }, status=status.HTTP_404_NOT_FOUND)
 
+    # Add link to link attachments list
+    deliverable_submission.get().link_attachments.remove(link_attachment_to_delete.get())
+    
+    return Response(serializers.StudentDeliverableSubmissionSerializer(deliverable_submission.get()).data)
     
 
 

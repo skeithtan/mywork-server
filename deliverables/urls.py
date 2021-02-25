@@ -11,5 +11,7 @@ urlpatterns = [
     path('courses/', views.courses_view),
     path('courses/<id>', views.courses_details_view),
     path('courses/<id>/deliverables/',views.course_deliverables_view),
-    path('deliverables/<deliverable_id>/submissions/',views.get_professor_deliverables_submissions_view)
+    path('deliverables/<deliverable_id>/submissions/',views.get_professor_deliverables_submissions_view),
+    path('deliverables/submissions/<id>/link-attachments', views.link_attachment_view),
+    path('deliverables/submissions/<id>/link-attachments/<link_id>', views.link_delete_view)
 ]
