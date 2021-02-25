@@ -56,7 +56,6 @@ def create_profile_view(request):
     return Response(serializers.ProfileSerializer(profile).data)
 
 
-
 @api_view(['POST', 'DELETE'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -77,7 +76,7 @@ def add_members_view(request, id):
         return Response({
             'error': f"Deliverable submission n°{id} does not exist."
         }, status=status.HTTP_404_NOT_FOUND)
-    
+
     # Check if deliverable submission is a group work
     if not deliverable_submission_to_edit.get().deliverable.is_group_work:
         return Response({
@@ -87,29 +86,28 @@ def add_members_view(request, id):
     # Check if student email exists
     email = request.data["email"]
     if not models.User.objects.filter(username=email).exists():
-            return Response({
-                'error': f"Student with email: {email} does not exist."
-            }, status=status.HTTP_404_NOT_FOUND)
-    
+        return Response({
+            'error': f"Student with email: {email} does not exist."
+        }, status=status.HTTP_404_NOT_FOUND)
+
     # Get profile from email address
-    member_to_add  = models.User.objects.filter(username=request.data["email"]).get()
-    member_profile_to_add = models.Profile.objects.get(user = member_to_add)
+    member_to_add = models.User.objects.filter(username=request.data["email"]).get()
+    member_profile_to_add = models.Profile.objects.get(user=member_to_add)
 
     # Check that profile is of student type
     if member_profile_to_add.user_type != models.Profile.UserType.STUDENT:
         return Response({
-                'error': f"Profile with email: {email} is not of student type."
-            }, status=status.HTTP_400_BAD_REQUEST)
-    
+            'error': f"Profile with email: {email} is not of student type."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
     # Check if student already exists in course's students list
     group_members = deliverable_submission_to_edit.get().group_members
-    
+
     if member_profile_to_add in group_members.all():
         return Response({
             "error": "User is already a group member in this deliverable submission !"
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    
     # Add profile to group_members
     group_members.add(member_profile_to_add)
 
@@ -125,7 +123,7 @@ def delete_members_view(request, id):
         return Response({
             'error': f"Deliverable submission n°{id} does not exist."
         }, status=status.HTTP_404_NOT_FOUND)
-    
+
     # Check if deliverable submission is a group work
     if not deliverable_submission_to_edit.get().deliverable.is_group_work:
         return Response({
@@ -134,30 +132,27 @@ def delete_members_view(request, id):
 
     # Check if student email exists
     email = request.data["email"]
-    if not models.User.objects.filter(username=email).exists() :
-            return Response({
-                'error': f"Student with email: {email} does not exist."
-            }, status=status.HTTP_404_NOT_FOUND)
-    
+    if not models.User.objects.filter(username=email).exists():
+        return Response({
+            'error': f"Student with email: {email} does not exist."
+        }, status=status.HTTP_404_NOT_FOUND)
+
     # Get student from email address
-    member_to_delete  = models.User.objects.filter(username=request.data["email"]).get()
-    member_profile_to_delete = models.Profile.objects.get(user = member_to_delete)
+    member_to_delete = models.User.objects.filter(username=request.data["email"]).get()
+    member_profile_to_delete = models.Profile.objects.get(user=member_to_delete)
 
     # Check if student already exists in group_members list
     group_members = deliverable_submission_to_edit.get().group_members
-    
+
     if not member_profile_to_delete in group_members.all():
         return Response({
             "error": "User is NOT a group member in this deliverable submission !"
         }, status=status.HTTP_400_BAD_REQUEST)
 
-    
     # Delete profile to group_members
     group_members.remove(member_profile_to_delete)
 
     return Response(serializers.ProfileSerializer(member_profile_to_delete.__dict__).data)
-
-
 
 
 @api_view(['POST'])
@@ -317,7 +312,7 @@ def join_course(request, id):
             return Response({
                 "error": "You are already enrolled in this course !"
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         course_to_edit.get().students.add(profile)
 
         course_edited = models.Course.objects.get(id=id)
@@ -340,7 +335,7 @@ def drop_course(request, id):
             return Response({
                 "error": "You are NOT enrolled in this course !"
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         course_to_edit.get().students.remove(profile)
 
         course_edited = models.Course.objects.get(id=id)
@@ -358,7 +353,6 @@ def course_deliverables_view(request, id):
     return Response(serializers.DeliverableSerializer(deliverables, many=True).data)
 
 
-
 @api_view(['GET'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -367,3 +361,20 @@ def get_student_deliverable_submissions_view(request):
     profile = models.Profile.objects.get(user=request.user)
     deliverable_submissions = models.DeliverableSubmission.objects.filter(submitter=profile)
     return Response(serializers.DeliverableSubmissionSerializer(deliverable_submissions, many=True).data)
+
+
+@api_view(['GET'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+@professors_only
+def get_professor_deliverables_submissions_view(request, deliverable_id):
+    profile = models.Profile.objects.get(user=request.user)
+    deliverable = models.Deliverable.objects.get(pk=deliverable_id)
+
+    if deliverable.course.professor != profile:
+        return Response({
+            'error': 'Cannot view submissions for classes with a different professor'
+        }, status=status.HTTP_403_FORBIDDEN)
+
+    submissions = models.DeliverableSubmission.objects.filter(deliverable=deliverable)
+    return Response(serializers.ProfessorDeliverableSubmissionSerializer(submissions, many=True).data)
