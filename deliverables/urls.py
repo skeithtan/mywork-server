@@ -13,5 +13,6 @@ urlpatterns = [
     path('courses/<id>/deliverables/',views.course_deliverables_view),
     path('deliverables/<deliverable_id>/submissions/',views.get_professor_deliverables_submissions_view),
     path('deliverables/submissions/<id>/link-attachments', views.link_attachment_view),
-    path('deliverables/submissions/<id>/link-attachments/<link_id>', views.link_delete_view)
+    path('deliverables/submissions/<id>/link-attachments/<link_id>', views.link_delete_view),
+    path('deliverables/submissions/<id>/', views.grade_view)
 ]

@@ -1,4 +1,4 @@
-from rest_framework import status
+from rest_framework import status, exceptions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework import authentication, permissions
@@ -437,3 +437,54 @@ def get_professor_deliverables_submissions_view(request, deliverable_id):
 
     submissions = models.DeliverableSubmission.objects.filter(deliverable=deliverable.get())
     return Response(serializers.ProfessorDeliverableSubmissionSerializer(submissions, many=True).data)
+
+
+@api_view(['PUT'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+@professors_only
+def grade_view(request, id):
+    deliverable = models.DeliverableSubmission.objects.filter(id=id)
+    # Check if deliverable submission id exists in db
+    if not deliverable.exists():
+        return Response({
+            'error': f"Deliverable n°{deliverable_id} does not exist."
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if data is valid without serializer
+    score = request.data.get('score', None)
+    feedback = request.data.get('feedback', None)
+
+    if score is None:
+        raise exceptions.ValidationError({
+            'score': 'This field is required'
+        })
+    if feedback is None:
+        raise exceptions.ValidationError({
+            'feedback': 'This field is required'
+        })
+    try:
+        score = int(score)
+    except ValueError:
+        raise exceptions.ValidationError({
+            'score': 'This parameter must be an integer'
+        })
+
+    try:
+        score = str(score)
+    except ValueError:
+        raise exceptions.ValidationError({
+            'feedback': 'This parameter must be a string'
+        })
+
+    if 0 >= int(score) <= 20:
+        raise exceptions.ValidationError({
+            'score': 'Must be an integer between 0 and 20'
+        })
+
+    data = {'score': score, 'feedback': feedback}
+    
+    deliverable.update(score=data['score'], feedback=data['feedback'])
+    deliverable_edited = deliverable.get()
+    return Response(serializers.StudentDeliverableSubmissionSerializer(deliverable_edited).data)
+ 
