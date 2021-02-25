@@ -216,7 +216,7 @@ def get_courses(request):
 
 @professors_only
 def create_course(request):
-    profile = models.Profile.objects.get(user=request.user)
+    profile = models.LinkAttachment.objects.get(user=request.user)
     serializer = serializers.CourseSerializer(data=request.data)
     if not serializer.is_valid():
         return Response(serializer.errors)
@@ -341,6 +341,59 @@ def drop_course(request, id):
         course_edited = models.Course.objects.get(id=id)
 
         return Response(serializers.CourseSerializer(course_edited).data)
+    
+@api_view(['POST'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def LinkAttachment_view(request, id):
+    if request.method == 'POST':
+        return create_LinkAttachment(request)
+    else:
+        return delete_LinkAttachment(request,id)
+
+@api_view(['DELETE'])
+@authentication_classes([authentication.TokenAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def LinkAttachmentDel_view(request, id, Lid):
+    return delete_LinkAttachment(request,Lid)
+
+@professors_only
+def create_LinkAttachment(request):
+    serializer = serializers.LinkAttachmentSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors)
+
+    data = serializer.validated_data
+    linkAttachment = models.LinkAttachment.objects.create(
+        url=data["url"],
+        label=data["label"],
+    )
+
+    return Response(serializers.LinkAttachmentSerializer(linkAttachment).data)
+
+@professors_only
+def delete_LinkAttachment(request, Lid):
+    LinkAttachment_to_delete = models.LinkAttachment.objects.filter(id=Lid)
+    if not LinkAttachment_to_delete.exists():
+        return Response({
+            'error': f"Link Attachment not available."
+        })
+    else:
+
+        serializer = serializers.LinkAttachmentSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            return Response(serializer.errors)
+
+        data = serializer.validated_data
+
+        LinkAttachment_to_delete.remove(Lid)
+
+        return Response({
+            'error': f"Record Deleted."
+        })
+
+    
 
 
 @api_view(['GET'])
