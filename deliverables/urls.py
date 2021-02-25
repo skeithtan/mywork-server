@@ -10,5 +10,7 @@ urlpatterns = [
     path('deliverables/submissions/<id>/members', views.add_members_view),
     path('courses/', views.courses_view),
     path('courses/<id>', views.courses_details_view),
-    path('courses/<id>/deliverables/', views.course_deliverables_view)
+    path('courses/<id>/deliverables/', views.course_deliverables_view),
+    path('deliverables/<deliverable_id>/submissions/',
+         views.get_professor_deliverables_submissions_view)
 ]

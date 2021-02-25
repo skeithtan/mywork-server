@@ -3,9 +3,14 @@ from . import models
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    email_address = serializers.SerializerMethodField()
+
+    def get_email_address(self, obj):
+        return obj.user.username
+
     class Meta:
         model = models.Profile
-        fields = ['id', 'name', 'user_type', 'program']
+        fields = ['id', 'name', 'user_type', 'program', 'email_address']
 
 
 class SignUpSerializer(serializers.Serializer):
@@ -40,8 +45,17 @@ class DeliverableSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class DeliverableSubmissionSerializer(serializers.ModelSerializer):
+class StudentDeliverableSubmissionSerializer(serializers.ModelSerializer):
     deliverable = DeliverableSerializer()
+
+    class Meta:
+        model = models.DeliverableSubmission
+        fields = '__all__'
+
+
+class ProfessorDeliverableSubmissionSerializer(serializers.ModelSerializer):
+    submitter = ProfileSerializer()
+    group_members = ProfileSerializer(many=True)
 
     class Meta:
         model = models.DeliverableSubmission
