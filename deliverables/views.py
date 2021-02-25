@@ -43,7 +43,7 @@ def create_profile_view(request):
     if User.objects.filter(username=email).exists():
         return Response({
             'error': f"User with email {email} already exists"
-        }, status=status.HTTP_403_FORBIDDEN)
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     user = User.objects.create_user(username=email, password=data["password"])
     profile = models.Profile.objects.create(
@@ -57,10 +57,17 @@ def create_profile_view(request):
 
 
 
-@api_view(['POST'])
+@api_view(['POST', 'DELETE'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
 @students_only
+def members_view(request, id):
+    if request.method == 'POST':
+        return add_members_view(request, id)
+    else:
+        return delete_members_view(request, id)
+
+
 def add_members_view(request, id):
     profile = models.Profile.objects.get(user=request.user)
     deliverable_submission_to_edit = models.DeliverableSubmission.objects.filter(id=id)
@@ -84,15 +91,15 @@ def add_members_view(request, id):
                 'error': f"Student with email: {email} does not exist."
             }, status=status.HTTP_404_NOT_FOUND)
     
-    # Get student id from email address
+    # Get profile from email address
     member_to_add  = models.User.objects.filter(username=request.data["email"]).get()
     member_profile_to_add = models.Profile.objects.get(user = member_to_add)
-    
-    # Prepare ProfileSerializer 
-    serializer = serializers.ProfileSerializer(data=member_profile_to_add.__dict__)
-    if not serializer.is_valid():
-        return Response(serializer.errors)
-    data = serializer.validated_data
+
+    # Check that profile is of student type
+    if member_profile_to_add.user_type != models.Profile.UserType.STUDENT:
+        return Response({
+                'error': f"Profile with email: {email} is not of student type."
+            }, status=status.HTTP_400_BAD_REQUEST)
     
     # Check if student already exists in course's students list
     group_members = deliverable_submission_to_edit.get().group_members
@@ -100,13 +107,55 @@ def add_members_view(request, id):
     if member_profile_to_add in group_members.all():
         return Response({
             "error": "User is already a group member in this deliverable submission !"
-        }, status=status.HTTP_403_FORBIDDEN)
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     
     # Add profile to group_members
     group_members.add(member_profile_to_add)
 
     return Response(serializers.ProfileSerializer(member_profile_to_add.__dict__).data)
+
+
+def delete_members_view(request, id):
+    profile = models.Profile.objects.get(user=request.user)
+    deliverable_submission_to_edit = models.DeliverableSubmission.objects.filter(id=id)
+
+    # Check if deliverable submission id exists in db
+    if not deliverable_submission_to_edit.exists():
+        return Response({
+            'error': f"Deliverable submission n°{id} does not exist."
+        }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Check if deliverable submission is a group work
+    if not deliverable_submission_to_edit.get().deliverable.is_group_work:
+        return Response({
+            'error': f"Deliverable submission n°{id} is NOT a group assignement."
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    # Check if student email exists
+    email = request.data["email"]
+    if not models.User.objects.filter(username=email).exists() :
+            return Response({
+                'error': f"Student with email: {email} does not exist."
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    # Get student from email address
+    member_to_delete  = models.User.objects.filter(username=request.data["email"]).get()
+    member_profile_to_delete = models.Profile.objects.get(user = member_to_delete)
+
+    # Check if student already exists in group_members list
+    group_members = deliverable_submission_to_edit.get().group_members
+    
+    if not member_profile_to_delete in group_members.all():
+        return Response({
+            "error": "User is NOT a group member in this deliverable submission !"
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+    
+    # Delete profile to group_members
+    group_members.remove(member_profile_to_delete)
+
+    return Response(serializers.ProfileSerializer(member_profile_to_delete.__dict__).data)
 
 
 
@@ -267,7 +316,7 @@ def join_course(request, id):
         if profile in course_to_edit.get().students.all():
             return Response({
                 "error": "You are already enrolled in this course !"
-            }, status=status.HTTP_403_FORBIDDEN)
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         course_to_edit.get().students.add(profile)
 
@@ -290,7 +339,7 @@ def drop_course(request, id):
         if profile not in course_to_edit.get().students.all():
             return Response({
                 "error": "You are NOT enrolled in this course !"
-            }, status=status.HTTP_403_FORBIDDEN)
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         course_to_edit.get().students.remove(profile)
 
