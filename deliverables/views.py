@@ -360,7 +360,7 @@ def course_deliverables_view(request, id):
 def get_student_deliverable_submissions_view(request):
     profile = models.Profile.objects.get(user=request.user)
     deliverable_submissions = models.DeliverableSubmission.objects.filter(submitter=profile)
-    return Response(serializers.DeliverableSubmissionSerializer(deliverable_submissions, many=True).data)
+    return Response(serializers.StudentDeliverableSubmissionSerializer(deliverable_submissions, many=True).data)
 
 
 @api_view(['GET'])
