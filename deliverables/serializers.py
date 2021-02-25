@@ -55,3 +55,9 @@ class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Course
         fields = '__all__'
+
+class LinkAttachmentSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = models.LinkAttachment
+        fields = '__all__'

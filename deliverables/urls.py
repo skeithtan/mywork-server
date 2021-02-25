@@ -8,5 +8,7 @@ urlpatterns = [
     path('deliverables/', views.create_deliverable_view),
     path('deliverables/submissions/', views.get_student_deliverable_submissions_view),
     path('courses/', views.courses_view),
-    path('courses/<id>', views.courses_details_view)
+    path('courses/<id>', views.courses_details_view),
+    path('deliverables/submissions/<id>/link-attachments/', views.LinkAttachment_view),
+    path('deliverables/submissions/<id>/link-attachments/<LAid>', views.LinkAttachment_view)
 ]
