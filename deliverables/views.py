@@ -62,57 +62,95 @@ def create_profile_view(request):
 @students_only
 def members_view(request, id):
     if request.method == 'POST':
-        return add_members_view(request, id)
+        return add_member_view(request, id)
     else:
         return delete_members_view(request, id)
 
 
-def add_members_view(request, id):
+def add_member_view(request, id, propagating=False):
     profile = models.Profile.objects.get(user=request.user)
     deliverable_submission_to_edit = models.DeliverableSubmission.objects.filter(id=id)
-
-    # Check if deliverable submission id exists in db
-    if not deliverable_submission_to_edit.exists():
-        return Response({
-            'error': f"Deliverable submission n°{id} does not exist."
-        }, status=status.HTTP_404_NOT_FOUND)
-
-    # Check if deliverable submission is a group work
-    if not deliverable_submission_to_edit.get().deliverable.is_group_work:
-        return Response({
-            'error': f"Deliverable submission n°{id} is NOT a group assignement."
-        }, status=status.HTTP_401_UNAUTHORIZED)
-
-    # Check if student email exists
     email = request.data["email"]
-    if not models.User.objects.filter(username=email).exists():
+    
+    # If this function is called directly by the related path then do...
+    if propagating==False:
+        # Check if deliverable submission id exists in db
+        if not deliverable_submission_to_edit.exists():
+            return Response({
+                'error': f"Deliverable submission n°{id} does not exist."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        deliverable = models.Deliverable.objects.get(id=deliverable_submission_to_edit.get().deliverable.pk)
+        course = models.Course.objects.get(id=deliverable.pk)
+
+        # Check if deliverable submission is a group work
+        if not deliverable_submission_to_edit.get().deliverable.is_group_work:
+            return Response({
+                'error': f"Deliverable submission n°{id} is NOT a group assignement."
+            }, status=status.HTTP_401_UNAUTHORIZED)
+
+        # Check if student email exists and is not current user
+        if not models.User.objects.filter(username=email).exists():
+            return Response({
+                'error': f"Student with email: {email} does not exist."
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        if email == models.User.objects.get(id=profile.pk).username:
+            return Response({
+                'error': "You should NOT add your own e-mail address in the group members."
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        # Get profile from email address
+        member_to_add = models.User.objects.filter(username=request.data["email"]).get()
+        member_profile_to_add = models.Profile.objects.get(user=member_to_add)
+
+        # Check that profile is of student type
+        if member_profile_to_add.user_type != models.Profile.UserType.STUDENT:
+            return Response({
+                'error': f"Profile with email: {email} is not a student."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if student takes that course
+        if  member_profile_to_add in course.students.all():
+            return Response({
+                'error': f"Student with email: {email} does not take this course."
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if student already exists in submission's group members list
+        group_members = deliverable_submission_to_edit.get().group_members
+
+        if member_profile_to_add in group_members.all():
+            return Response({
+                "error": "User is already a group member in this deliverable submission !"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Student can be added to group members so we propagate the function to other group members
+        for m in group_members.all():
+            m_deliverable_submission = models.DeliverableSubmission.objects.filter(submitter=m).filter(deliverable=deliverable)
+            add_member_view(request, m_deliverable_submission.get().pk, True)
+
+        # Then we copy the list of group members to new member's own group members list 
+        new_member_submission = models.DeliverableSubmission.objects.filter(submitter=m).filter(deliverable=deliverable).get()
+        new_member_submission.group_members.set(group_members.all())
+
+        # Add profile to group_members
+        group_members.add(member_profile_to_add)
+
         return Response({
-            'error': f"Student with email: {email} does not exist."
-        }, status=status.HTTP_404_NOT_FOUND)
+                "success": "Student added in group !"
+            }, status=status.HTTP_200_OK)
+        # return Response(serializers.ProfileSerializer(member_profile_to_add.__dict__).data)
+        
+    # When this function is called by itself do...
+    else:
+        
+        # Get profile from email address
+        member_to_add = models.User.objects.filter(username=email).get()
+        member_profile_to_add = models.Profile.objects.get(user=member_to_add)
+        group_members = deliverable_submission_to_edit.get().group_members
 
-    # Get profile from email address
-    member_to_add = models.User.objects.filter(username=request.data["email"]).get()
-    member_profile_to_add = models.Profile.objects.get(user=member_to_add)
-
-    # Check that profile is of student type
-    if member_profile_to_add.user_type != models.Profile.UserType.STUDENT:
-        return Response({
-            'error': f"Profile with email: {email} is not of student type."
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    # Check if student already exists in course's students list
-    group_members = deliverable_submission_to_edit.get().group_members
-
-    if member_profile_to_add in group_members.all():
-        return Response({
-            "error": "User is already a group member in this deliverable submission !"
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    # Add profile to group_members
-    group_members.add(member_profile_to_add)
-
-    return Response(serializers.ProfileSerializer(member_profile_to_add.__dict__).data)
-
+        # Add profile to group_members
+        group_members.add(member_profile_to_add)
 
 def delete_members_view(request, id):
     profile = models.Profile.objects.get(user=request.user)
@@ -152,7 +190,10 @@ def delete_members_view(request, id):
     # Delete profile to group_members
     group_members.remove(member_profile_to_delete)
 
-    return Response(serializers.ProfileSerializer(member_profile_to_delete.__dict__).data)
+    return Response({
+                "success": "Student deleted from group !"
+            }, status=status.HTTP_202_ACCEPTED)
+    # return Response(serializers.ProfileSerializer(member_profile_to_delete.__dict__).data)
 
 
 @api_view(['POST'])
