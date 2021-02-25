@@ -368,7 +368,6 @@ def create_LinkAttachment(request):
         url=data["url"],
         label=data["label"],
     )
-
     return Response(serializers.LinkAttachmentSerializer(linkAttachment).data)
 
 @professors_only
@@ -422,12 +421,19 @@ def get_student_deliverable_submissions_view(request):
 @professors_only
 def get_professor_deliverables_submissions_view(request, deliverable_id):
     profile = models.Profile.objects.get(user=request.user)
-    deliverable = models.Deliverable.objects.get(pk=deliverable_id)
+    deliverable = models.Deliverable.objects.filter(pk=deliverable_id)
 
-    if deliverable.course.professor != profile:
+    # Check if deliverable submission id exists in db
+    if not deliverable.exists():
+        return Response({
+            'error': f"Deliverable n°{deliverable_id} does not exist."
+        }, status=status.HTTP_404_NOT_FOUND)
+
+    # Check if professor is professor of this course
+    if deliverable.get().course.professor != profile:
         return Response({
             'error': 'Cannot view submissions for classes with a different professor'
         }, status=status.HTTP_403_FORBIDDEN)
 
-    submissions = models.DeliverableSubmission.objects.filter(deliverable=deliverable)
+    submissions = models.DeliverableSubmission.objects.filter(deliverable=deliverable.get())
     return Response(serializers.ProfessorDeliverableSubmissionSerializer(submissions, many=True).data)
