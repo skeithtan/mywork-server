@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',
     'corsheaders',
     'deliverables',
+    'drf_yasg',  
 ]
 
 CORS_ORIGIN_ALLOW_ALL = True
@@ -72,6 +73,11 @@ TEMPLATES = [
         },
     },
 ]
+
+TEMPLATE_LOADERS = (
+        'django.template.loaders.filesystem.Loader',
+        'django.template.loaders.app_directories.Loader',
+    )
 
 WSGI_APPLICATION = 'mywork.wsgi.application'
 

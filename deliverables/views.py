@@ -12,6 +12,9 @@ from . import models, serializers
 
 @api_view(['POST'])
 def sign_in_view(request):
+    """
+    description: This is a test
+    """
     user = authenticate(username=request.data["email"], password=request.data["password"])
     if user is not None:
         token, created = Token.objects.get_or_create(user=user)

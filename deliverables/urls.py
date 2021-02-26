@@ -1,9 +1,24 @@
-from django.urls import path
+from django.urls import path, re_path, include
 from . import views
-from rest_framework_swagger.views import get_swagger_view
+from django.conf.urls import url 
+from rest_framework import permissions
+from drf_yasg.views import get_schema_view
+from drf_yasg import openapi
 
-schema_view = get_swagger_view(title='Pastebin API')
+# schema_view = get_swagger_view(title='MyWork API')
 
+
+schema_view = get_schema_view(
+   openapi.Info(
+      title="MyWork API",
+      default_version='v1',
+      description="This is the API documentation of MyWork",
+      terms_of_service="https://www.google.com/policies/terms/",
+      license=openapi.License(name="MIT License"),
+   ),
+   public=True,
+   permission_classes=(permissions.AllowAny,),
+)
 
 urlpatterns = [
     path('auth/sign-in/', views.sign_in_view),
@@ -19,5 +34,10 @@ urlpatterns = [
     path('deliverables/submissions/<id>/link-attachments', views.link_attachment_view),
     path('deliverables/submissions/<id>/link-attachments/<link_id>', views.link_delete_view),
     path('deliverables/submissions/<id>/', views.grade_view),
-    path('api/', schema_view)
+    re_path(r'^doc(?P<format>\.json|\.yaml)$',
+            schema_view.without_ui(cache_timeout=0), name='schema-json'),  #<-- Here
+    path('doc/', schema_view.with_ui('swagger', cache_timeout=0),
+         name='schema-swagger-ui'),  #<-- Here
+    path('redoc/', schema_view.with_ui('redoc', cache_timeout=0),
+         name='schema-redoc'),  #<-- Here
 ]
