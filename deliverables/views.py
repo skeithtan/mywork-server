@@ -12,7 +12,7 @@ from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 
 # help swapper build documentation with @swagger_auto_schema
-valid_resp = openapi.Response("Valid response:n'token': token_value")
+valid_resp = openapi.Response("Valid response:\n'token': token_value")
 unvalid_resp = openapi.Response("Invalid response:\n'error': 'Invalid credentials'")
 @swagger_auto_schema(method='post', operation_description="Sign in method with username and password.",
                      request_body=serializers.SignInSerializer, responses={200: valid_resp, 401: unvalid_resp} )
@@ -66,6 +66,10 @@ def create_profile_view(request):
     return Response(serializers.ProfileSerializer(profile).data)
 
 
+valid_resp = openapi.Response('Valid response:\n"success": "Student deleted from group !"')
+unvalid_resp = openapi.Response("Invalid response:\nError message.")
+@swagger_auto_schema(method='delete', operation_description="Delete a member of group.",
+                     responses={202: valid_resp, 400: unvalid_resp, 404: unvalid_resp})
 @api_view(['POST', 'DELETE'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -234,6 +238,10 @@ def delete_member_view(request, id, propagating=False):
         group_members.remove(member_profile_to_delete)
 
 
+valid_resp = openapi.Response('Valid response:', serializers.DeliverableSerializer)
+unvalid_resp = openapi.Response("Invalid response:\nError message")
+@swagger_auto_schema(method='post', operation_description="Create a new deliverable.",
+                     request_body=serializers.DeliverableSerializer, responses={200: valid_resp, 400: unvalid_resp})
 @api_view(['POST'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -264,7 +272,6 @@ def create_deliverable_view(request):
             )
 
     return Response(serializers.DeliverableSerializer(deliverable).data)
-
 
 @api_view(['GET', 'POST'])
 @authentication_classes([authentication.TokenAuthentication])
@@ -421,7 +428,11 @@ def drop_course(request, id):
 
         return Response(serializers.CourseSerializer(course_edited).data)
     
-    
+
+valid_resp = openapi.Response('Valid response:', serializers.StudentDeliverableSubmissionSerializer)
+unvalid_resp = openapi.Response("Invalid response:\nError message.")
+@swagger_auto_schema(method='post', operation_description="Add link to submission.",
+                     request_body=serializers.LinkAttachmentSerializer,responses={200: valid_resp, 404: unvalid_resp})
 @api_view(['POST'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -449,6 +460,13 @@ def link_attachment_view(request, id):
 
     return Response(serializers.StudentDeliverableSubmissionSerializer(deliverable_submission.get()).data)
 
+
+
+
+valid_resp = openapi.Response('Valid response:', serializers.StudentDeliverableSubmissionSerializer)
+unvalid_resp = openapi.Response("Invalid response:\nError message.")
+@swagger_auto_schema(method='delete', operation_description="Delete a link from submission.",
+                     responses={202: valid_resp, 404: unvalid_resp})
 @api_view(['DELETE'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -474,6 +492,11 @@ def link_delete_view(request, id, link_id):
     
 
 
+
+valid_resp = openapi.Response('Valid response:', serializers.DeliverableSerializer)
+unvalid_resp = openapi.Response("Invalid response:\nError message.")
+@swagger_auto_schema(method='get', operation_description="Get deliverables for a course.",
+                     responses={200: valid_resp, 404: unvalid_resp})
 @api_view(['GET'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -484,6 +507,10 @@ def course_deliverables_view(request, id):
     return Response(serializers.DeliverableSerializer(deliverables, many=True).data)
 
 
+valid_resp = openapi.Response('Valid response:', serializers.StudentDeliverableSubmissionSerializer)
+unvalid_resp = openapi.Response("Invalid response:\nError message.")
+@swagger_auto_schema(method='get', operation_description="Get all deliverable of connected student.",
+                     responses={200: valid_resp, 404: unvalid_resp})
 @api_view(['GET'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -494,6 +521,10 @@ def get_student_deliverable_submissions_view(request):
     return Response(serializers.StudentDeliverableSubmissionSerializer(deliverable_submissions, many=True).data)
 
 
+valid_resp = openapi.Response('Valid response:', serializers.ProfessorDeliverableSubmissionSerializer)
+unvalid_resp = openapi.Response("Invalid response:\nError message.")
+@swagger_auto_schema(method='get', operation_description="Get all deliverable of connected professor.",
+                     responses={200: valid_resp, 403: unvalid_resp, 404: unvalid_resp})
 @api_view(['GET'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])
@@ -518,6 +549,10 @@ def get_professor_deliverables_submissions_view(request, deliverable_id):
     return Response(serializers.ProfessorDeliverableSubmissionSerializer(submissions, many=True).data)
 
 
+valid_resp = openapi.Response('Valid response:', serializers.StudentDeliverableSubmissionSerializer)
+unvalid_resp = openapi.Response("Invalid response:\nError message.")
+@swagger_auto_schema(method='put', operation_description="Add grade to a submission.",
+                     request_body=serializers.GradeSerializer, responses={200: valid_resp, 404: unvalid_resp})
 @api_view(['PUT'])
 @authentication_classes([authentication.TokenAuthentication])
 @permission_classes([permissions.IsAuthenticated])

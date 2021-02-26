@@ -90,3 +90,17 @@ class LinkAttachmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.LinkAttachment
         fields = '__all__'
+
+
+class GradeSerializer(serializers.Serializer):
+    score = serializers.IntegerField(required=True)
+    feedback = serializers.CharField(required=True)
+    
+
+    def validate(self, data):
+        if 'score' not in data.keys():
+            raise serializers.ValidationError('Field score is required.')
+        if 'feedback' not in data.keys():
+            raise serializers.ValidationError('Field feedback is required.')
+
+        return super().validate(data)
