@@ -8,13 +8,16 @@ from django.db import transaction
 from django.contrib.auth import authenticate
 from .middlewares import professors_only, students_only
 from . import models, serializers
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
-
+# help swapper build documentation with @swagger_auto_schema
+valid_resp = openapi.Response("Valid response:n'token': token_value")
+unvalid_resp = openapi.Response("Invalid response:\n'error': 'Invalid credentials'")
+@swagger_auto_schema(method='post', operation_description="Sign in method with username and password.",
+                     request_body=serializers.SignInSerializer, responses={200: valid_resp, 401: unvalid_resp} )
 @api_view(['POST'])
 def sign_in_view(request):
-    """
-    description: This is a test
-    """
     user = authenticate(username=request.data["email"], password=request.data["password"])
     if user is not None:
         token, created = Token.objects.get_or_create(user=user)
@@ -35,6 +38,10 @@ def get_profile_view(request):
     return Response(serializers.ProfileSerializer(profile).data)
 
 
+valid_resp = openapi.Response('Valid response:', serializers.ProfileSerializer)
+unvalid_resp = openapi.Response("Invalid response:\n'error': 'User with email {email} already exists'")
+@swagger_auto_schema(method='post', operation_description="Sign in method with username and password.",
+                     request_body=serializers.SignUpSerializer, responses={200: valid_resp, 400: unvalid_resp} )
 @api_view(['POST'])
 def create_profile_view(request):
     serializer = serializers.SignUpSerializer(data=request.data)

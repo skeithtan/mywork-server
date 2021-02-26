@@ -13,6 +13,21 @@ class ProfileSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'user_type', 'program', 'email_address']
 
 
+class SignInSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True)
+    
+
+    def validate(self, data):
+        if 'email' not in data.keys():
+            raise serializers.ValidationError('Field email is required.')
+        if 'password' not in data.keys():
+            raise serializers.ValidationError('Field password is required.')
+
+        return super().validate(data)
+
+
+
 class SignUpSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
     password = serializers.CharField(required=True)
